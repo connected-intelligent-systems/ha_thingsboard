@@ -1,0 +1,15 @@
+version: '3'
+services:
+  homeassistant:
+    container_name: homeassistant
+    image: "ghcr.io/home-assistant/home-assistant:stable"
+    volumes:
+      - ha_config:/config
+      - ./thingsboard:/config/custom_components/thingsboard
+      - /etc/localtime:/etc/localtime:ro
+    restart: unless-stopped
+    privileged: true
+    network_mode: host
+
+volumes:
+  ha_config:
