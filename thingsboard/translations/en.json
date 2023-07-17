@@ -10,11 +10,11 @@
         },
         "step": {
             "user": {
-                "title": "Set up your Thingsboard integration",
-                "description": "Setting up you shit here",
+                "title": "Submit your home assistant telemetry to a thingsboard",
+                "description": "You need to create a gateway device in thingsboard and provide the url and access token.",
                 "data": {
-                    "host": "Host",
-                    "port": "Port",
+                    "host": "MQTT Host",
+                    "port": "MQTT Port",
                     "acccess_token": "Access Token"
                 }
             }
