@@ -2,9 +2,9 @@
 from __future__ import annotations
 import logging
 import queue
-from typing import Any
 import paho.mqtt.client as mqtt
 import voluptuous as vol
+from typing import Any
 from homeassistant import config_entries
 from homeassistant.core import HomeAssistant
 from homeassistant.const import (
@@ -12,88 +12,22 @@ from homeassistant.const import (
 )
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.exceptions import HomeAssistantError
-import homeassistant.helpers.config_validation as cv
+from homeassistant.core import callback
 from homeassistant.helpers import selector
-from .const import DOMAIN
+import homeassistant.helpers.config_validation as cv
+from .const import DOMAIN, HOME_ASSISTANT_DEVICE_CLASSES
 
-home_assistant_device_classes = [
-    "battery",
-    "cold",
-    "connectivity",
-    "door",
-    "garage_door",
-    "gas",
-    "heat",
-    "light",
-    "lock",
-    "moisture",
-    "motion",
-    "moving",
-    "occupancy",
-    "opening",
-    "plug",
-    "power",
-    "presence",
-    "problem",
-    "safety",
-    "smoke",
-    "sound",
-    "update",
-    "vibration",
-    "window",
-    "apparent_power",
-    "aqi",
-    "carbon_dioxide",
-    "carbon_monoxide",
-    "current",
-    "data_rate",
-    "data_size",
-    "distance",
-    "energy",
-    "enum",
-    "frequency",
-    "humidity",
-    "illuminance",
-    "monetary",
-    "nitrogen_dioxide",
-    "nitrogen_monoxide",
-    "nitrous_oxide",
-    "ozone",
-    "pm1",
-    "pm10",
-    "pm25",
-    "power_factor",
-    "pressure",
-    "signal_strength",
-    "speed",
-    "sulphur_dioxide",
-    "temperature",
-    "timestamp",
-    "volatile_organic_compounds",
-    "voltage",
-    "weight",
-    "wind_speed"
-]
+
+class CannotConnect(HomeAssistantError):
+    """Error to indicate we cannot connect."""
+
+
+class InvalidAuth(HomeAssistantError):
+    """Error to indicate there is invalid auth."""
 
 
 MQTT_TIMEOUT = 5
 _LOGGER = logging.getLogger(__name__)
-
-STEP_MQTT_DATA_SCHEMA = vol.Schema(
-    {
-        vol.Required("host", default="dataspace.plaiful.org"): str,
-        vol.Required("port", default=8883): cv.port,
-        vol.Required("tls", default=True): bool,
-        vol.Required("access_token"): str,
-        vol.Required("thing_model_repo_url",
-                     default="https://raw.githubusercontent.com/salberternst/thing-models/main/home_assistant"): str,
-        vol.Required(CONF_SENSORS, default=[]): selector.SelectSelector(
-            selector.SelectSelectorConfig(
-                options=home_assistant_device_classes, translation_key=CONF_SENSORS, multiple=True
-            ),
-        ),
-    }
-)
 
 
 def try_connection(
@@ -102,7 +36,13 @@ def try_connection(
     client = mqtt.Client("home-assistant", protocol=mqtt.MQTTv31, userdata={})
     result: queue.Queue[int] = queue.Queue(maxsize=1)
 
-    def on_connect(result_code: int) -> None:
+    def on_connect(
+        client_: mqtt.Client,
+        userdata: None,
+        flags: dict[str, Any],
+        result_code: int,
+        properties: mqtt.Properties | None = None
+    ) -> None:
         result.put(result_code)
 
     client.on_connect = on_connect
@@ -129,7 +69,7 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
 
     if connect_result == mqtt.CONNACK_ACCEPTED:
         return {"title": data["host"]}
-    
+
     if connect_result in (mqtt.AUTH, mqtt.CONNACK_REFUSED_BAD_USERNAME_PASSWORD):
         raise InvalidAuth()
     raise CannotConnect()
@@ -140,11 +80,59 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     VERSION = 1
 
+    async def async_step_reconfigure(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Handle the initial step."""
+        errors: dict[str, str] = {}
+        config_entry = self.hass.config_entries.async_get_entry(
+            self.context["entry_id"]
+        )
+
+        if user_input is not None:
+            try:
+                info = await validate_input(self.hass, user_input)
+            except CannotConnect:
+                errors["base"] = "cannot_connect"
+            except InvalidAuth:
+                errors["base"] = "invalid_auth"
+            except Exception:
+                _LOGGER.exception("Unexpected exception")
+                errors["base"] = "unknown"
+            else:
+                self.hass.config_entries.async_update_entry(
+                    config_entry,
+                    data=user_input,
+                    title=info["title"],
+                )
+                return self.async_abort(reason="updated_configuration")
+
+        return self.async_show_form(
+            step_id="reconfigure",
+            data_schema=vol.Schema(
+                {
+                    vol.Required("host", default=config_entry.data.get('host')): str,
+                    vol.Required("port", default=config_entry.data.get('port')): cv.port,
+                    vol.Required("tls", default=config_entry.data.get('tls')): bool,
+                    vol.Required("access_token", default=config_entry.data.get('access_token')): str,
+                    vol.Required("thing_model_repo_url",
+                                 default=config_entry.data.get('thing_model_repo_url')): str,
+                    vol.Required(CONF_SENSORS, default=config_entry.data.get(CONF_SENSORS)): selector.SelectSelector(
+                        selector.SelectSelectorConfig(
+                            options=HOME_ASSISTANT_DEVICE_CLASSES, translation_key=CONF_SENSORS, multiple=True
+                        ),
+                    ),
+                }
+            ),
+            errors=errors
+        )
+
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Handle the initial step."""
         errors: dict[str, str] = {}
+
         if user_input is not None:
             try:
                 info = await validate_input(self.hass, user_input)
@@ -159,13 +147,21 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 return self.async_create_entry(title=info["title"], data=user_input)
 
         return self.async_show_form(
-            step_id="user", data_schema=STEP_MQTT_DATA_SCHEMA, errors=errors
+            step_id="user",
+            data_schema=vol.Schema(
+                {
+                    vol.Required("host", default="thingsboard.mvp-ds.dev-prd01.fsn.iotx.materna.work"): str,
+                    vol.Required("port", default=8883): cv.port,
+                    vol.Required("tls", default=True): cv.boolean,
+                    vol.Required("access_token"): str,
+                    vol.Required("thing_model_repo_url",
+                                 default="https://raw.githubusercontent.com/salberternst/thing-models/main/home_assistant"): str,
+                    vol.Required(CONF_SENSORS, default=[]): selector.SelectSelector(
+                        selector.SelectSelectorConfig(
+                            options=HOME_ASSISTANT_DEVICE_CLASSES, translation_key=CONF_SENSORS, multiple=True
+                        ),
+                    ),
+                }
+            ),
+            errors=errors
         )
-
-
-class CannotConnect(HomeAssistantError):
-    """Error to indicate we cannot connect."""
-
-
-class InvalidAuth(HomeAssistantError):
-    """Error to indicate there is invalid auth."""

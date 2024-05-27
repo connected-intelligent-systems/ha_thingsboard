@@ -1,0 +1,39 @@
+{
+    "config": {
+        "abort": {
+            "already_configured": "Gerät ist bereits konfiguriert",
+            "updated_configuration": "Konfiguration wurde aktualisiert"
+        },
+        "error": {
+            "cannot_connect": "Verbindung fehlgeschlagen",
+            "invalid_auth": "Ungültige Authentifizierung",
+            "unknown": "Unerwarteter Fehler"
+        },
+        "step": {
+            "user": {
+                "title": "Synchronisierung einrichten",
+                "description": "![Location of button on bridge](https://smartlivingnext.de/wp-content/uploads/2023/12/SmartLivingNEXT-bw-1.svg)",
+                "data": {
+                    "host": "MQTT-Host",
+                    "port": "MQTT-Port",
+                    "tls": "TLS verwenden",
+                    "access_token": "Zugriffstoken",
+                    "sensors": "Sensoren",
+                    "thing_model_repo_url": "Basis-URL zu einem Repository, das W3C Thing Models enthält"
+                }
+            }, 
+            "reconfigure": {
+                "title": "Anpassung Synchronisierung",
+                "description": "![Location of button on bridge](https://smartlivingnext.de/wp-content/uploads/2023/12/SmartLivingNEXT-bw-1.svg)",
+                "data": {
+                    "host": "MQTT-Host",
+                    "port": "MQTT-Port",
+                    "tls": "TLS verwenden",
+                    "access_token": "Zugriffstoken",
+                    "sensors": "Sensoren",
+                    "thing_model_repo_url": "Basis-URL zu einem Repository, das W3C Thing Models enthält"
+                }
+            }
+        }
+    }
+}

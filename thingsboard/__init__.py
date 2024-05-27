@@ -2,10 +2,9 @@
 from __future__ import annotations
 import json
 import hashlib
-from dataclasses import dataclass
-from datetime import datetime
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import Event, HomeAssistant, State
+from homeassistant.core import Event, HomeAssistant
+import datetime
 from homeassistant.const import (
     MATCH_ALL
 )
@@ -95,11 +94,15 @@ def publish_state(client, device_id, state, device_class):
     Returns:
         None
     """
+
+    ts = int(datetime.datetime.fromisoformat(state.last_changed.isoformat()).timestamp() * 1000)
     return client.publish('v1/gateway/telemetry', json.dumps({
         device_id: [{
-            device_class: state.as_dict()['state']
+            "ts": ts,
+            "values": {
+                device_class: state.as_dict()['state']}
         }]
-    }))
+    }), qos=1)
 
 
 def publish_attributes(client, device_id, attributes):
@@ -120,7 +123,7 @@ def publish_attributes(client, device_id, attributes):
     """
     return client.publish('v1/gateway/attributes', json.dumps({
         device_id: attributes
-    }))
+    }), qos=1)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -152,12 +155,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 entity_id = hashlib.sha1(event.data.get(
                     'entity_id').encode('utf-8')).hexdigest()
                 device_id = await get_device_id(hass, event.data.get('entity_id'))
-
+                
                 # If the entity ID is not in the cache, publish the device's metadata and model
                 if entity_id_cache.get(entity_id) is None:
                     attributes = {
                         'thing-metadata': {
-                            'parent': device_id,
+                            'parents': [
+                                device_id
+                            ] if device_id is not None else [],
                             'description': state.attributes.get('friendly_name'),
                             'icon': state.attributes.get('icon'),
                             device_class: {

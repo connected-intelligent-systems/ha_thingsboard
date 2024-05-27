@@ -1,7 +1,8 @@
 {
     "config": {
         "abort": {
-            "already_configured": "Device is already configured"
+            "already_configured": "Device is already configured",
+            "updated_configuration": "Updated configuration"
         },
         "error": {
             "cannot_connect": "Failed to connect",
@@ -10,15 +11,27 @@
         },
         "step": {
             "user": {
-                "title": "Setup Thingsboard Synchronization",
-                "description": "You need to create a gateway device in thingsboard and provide the url and access token.",
+                "title": "Setup Synchronization",
+                "description": "![Location of button on bridge](https://smartlivingnext.de/wp-content/uploads/2023/12/SmartLivingNEXT-bw-1.svg)",
                 "data": {
                     "host": "MQTT Host",
                     "port": "MQTT Port",
                     "tls": "Use TLS",
                     "access_token": "Access Token",
-                    "thing_model_repo_url": "Base URL to a repository that contains W3C Thing Models",
-                    "sensors": "Sensors"
+                    "sensors": "Sensors",
+                    "thing_model_repo_url": "Base URL to a repository that contains W3C Thing Models"
+                }
+            },
+            "reconfigure": {
+                "title": "Reconfigure Synchronization",
+                "description": "![Location of button on bridge](https://smartlivingnext.de/wp-content/uploads/2023/12/SmartLivingNEXT-bw-1.svg)",
+                "data": {
+                    "host": "MQTT Host",
+                    "port": "MQTT Port",
+                    "tls": "Use TLS",
+                    "access_token": "Access Token",
+                    "sensors": "Sensors",
+                    "thing_model_repo_url": "Base URL to a repository that contains W3C Thing Models"
                 }
             }
         }
