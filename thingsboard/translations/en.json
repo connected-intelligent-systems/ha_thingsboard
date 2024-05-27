@@ -10,12 +10,15 @@
         },
         "step": {
             "user": {
-                "title": "Submit your home assistant telemetry to a thingsboard",
+                "title": "Setup Thingsboard Synchronization",
                 "description": "You need to create a gateway device in thingsboard and provide the url and access token.",
                 "data": {
                     "host": "MQTT Host",
                     "port": "MQTT Port",
-                    "acccess_token": "Access Token"
+                    "tls": "Use TLS",
+                    "access_token": "Access Token",
+                    "thing_model_repo_url": "Base URL to a repository that contains W3C Thing Models",
+                    "sensors": "Sensors"
                 }
             }
         }

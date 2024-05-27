@@ -6,7 +6,9 @@
         "description": "[%key:common::config_flow::data::description%]",
         "data": {
           "host": "[%key:common::config_flow::data::host%]",
-          "acccess_token": "[%key:common::config_flow::data::acccess_token%]"
+          "port": "[%key:common::config_flow::data::port%]",
+          "access_token": "[%key:common::config_flow::data::access_token%]",
+          "thing_model_repo_url": "[%key:common::config_flow::data::thing_model_repo_url%]"
         }
       }
     },
