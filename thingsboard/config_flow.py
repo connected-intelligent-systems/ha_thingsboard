@@ -2,9 +2,9 @@
 from __future__ import annotations
 import logging
 import queue
-import paho.mqtt.client as mqtt
-import voluptuous as vol
 from typing import Any
+import voluptuous as vol
+import paho.mqtt.client as mqtt
 from homeassistant import config_entries
 from homeassistant.core import HomeAssistant
 from homeassistant.const import (
@@ -12,7 +12,6 @@ from homeassistant.const import (
 )
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.exceptions import HomeAssistantError
-from homeassistant.core import callback
 from homeassistant.helpers import selector
 import homeassistant.helpers.config_validation as cv
 from .const import DOMAIN, HOME_ASSISTANT_DEVICE_CLASSES
@@ -37,11 +36,8 @@ def try_connection(
     result: queue.Queue[int] = queue.Queue(maxsize=1)
 
     def on_connect(
-        client_: mqtt.Client,
-        userdata: None,
-        flags: dict[str, Any],
         result_code: int,
-        properties: mqtt.Properties | None = None
+        **_
     ) -> None:
         result.put(result_code)
 
