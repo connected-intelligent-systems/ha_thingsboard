@@ -1,4 +1,3 @@
-"""The thingsboard integration."""
 from __future__ import annotations
 import json
 import hashlib
@@ -14,15 +13,36 @@ import paho.mqtt.client as mqtt
 
 
 async def get_platform_from_entity_id(hass, entity_id):
+    """
+    Get the platform of an entity based on its entity ID.
+
+    Parameters:
+    - hass: Home Assistant core object.
+    - entity_id: The ID of the entity.
+
+    Returns:
+    - The platform of the entity if found, otherwise None.
+    """
     entity_registry = hass.helpers.entity_registry.async_get(hass)
     entity = entity_registry.async_get(entity_id)
 
     if entity:
         return entity.platform
+
     return None
 
 
 async def get_device_id(hass: HomeAssistant, entity_id: str) -> str:
+    """
+    Retrieves the device ID associated with the given entity ID.
+
+    Args:
+        hass (HomeAssistant): The Home Assistant instance.
+        entity_id (str): The ID of the entity.
+
+    Returns:
+        str: The device ID associated with the entity ID.
+    """
     entity_registry = hass.helpers.entity_registry.async_get(hass)
     entity: Entity = entity_registry.async_get(entity_id)
 
@@ -33,7 +53,22 @@ async def get_device_id(hass: HomeAssistant, entity_id: str) -> str:
     return None, None
 
 
-def publish_connect(client: mqtt.Client, entity_id, device_class, qos: int = 0, wait: bool = False):
+def publish_connect(client: mqtt.Client, entity_id: str, device_class: str,
+                    qos: int = 0, wait: bool = False):
+    """
+    Publishes a connect message to the ThingsBoard gateway.
+
+    Args:
+        client (mqtt.Client): The MQTT client instance.
+        entity_id (str): The ID of the device/entity to connect.
+        device_class (str): The class/type of the device.
+        qos (int, optional): The quality of service level for the message (default is 0).
+        wait (bool, optional): Whether to wait for the message to be published (default is False).
+
+    Returns:
+        mqtt.MQTTMessageInfo: Information about the published message.
+
+    """
     message_info = client.publish('v1/gateway/connect', json.dumps({
         'device': entity_id,
         'type': device_class
@@ -43,7 +78,19 @@ def publish_connect(client: mqtt.Client, entity_id, device_class, qos: int = 0, 
         message_info.wait_for_publish()
 
 
-def publish_state(client: mqtt.Client, entity_id, state, device_class, qos: int = 0, wait: bool = False):
+def publish_state(client: mqtt.Client, entity_id: str, state,
+                  device_class: str, qos: int = 0, wait: bool = False):
+    """
+    Publishes the state of an entity to the ThingsBoard IoT platform.
+
+    Args:
+        client (mqtt.Client): The MQTT client used for publishing the state.
+        entity_id (str): The ID of the entity whose state is being published.
+        state: The state of the entity.
+        device_class (str): The device class of the entity.
+        qos (int, optional): The quality of service level for the MQTT message. Defaults to 0.
+        wait (bool, optional): Whether to wait for the message to be published before returning. Defaults to False.
+    """
     timestamp = int(datetime.datetime.fromisoformat(
         state.last_changed.isoformat()).timestamp() * 1000)
 
@@ -64,6 +111,16 @@ def publish_state(client: mqtt.Client, entity_id, state, device_class, qos: int 
 
 
 def publish_attributes(client: mqtt.Client, entity_id, attributes, qos: int = 0, wait: bool = False):
+    """
+    Publishes attributes to the ThingsBoard gateway.
+
+    Args:
+        client (mqtt.Client): The MQTT client object.
+        entity_id: The ID of the entity to which the attributes belong.
+        attributes: The attributes to be published.
+        qos (int, optional): The quality of service level for the MQTT message. Defaults to 0.
+        wait (bool, optional): Whether to wait for the message to be published. Defaults to False.
+    """
     message_info = client.publish('v1/gateway/attributes', json.dumps({
         entity_id: attributes
     }), qos=qos)
@@ -73,6 +130,19 @@ def publish_attributes(client: mqtt.Client, entity_id, attributes, qos: int = 0,
 
 
 def build_attributes(state, device_id_uuid, device_id, device_class, entry):
+    """
+    Build and return a dictionary of attributes for a Thing in Thingsboard.
+
+    Args:
+        state (object): The state object containing the attributes.
+        device_id_uuid (str): The UUID of the device.
+        device_id (str): The ID of the device.
+        device_class (str): The class of the device.
+        entry (object): The entry object containing the data.
+
+    Returns:
+        dict: A dictionary of attributes for the Thing in Thingsboard.
+    """
     return {
         'thing-metadata': {
             'parents': [
@@ -89,6 +159,19 @@ def build_attributes(state, device_id_uuid, device_id, device_class, entry):
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """
+    Set up an entry for the ThingsBoard integration.
+
+    This function is called by Home Assistant when a ThingsBoard entry is being set up.
+    It establishes a connection to the ThingsBoard MQTT broker and starts listening for state events.
+
+    Parameters:
+    - hass (HomeAssistant): The Home Assistant instance.
+    - entry (ConfigEntry): The ThingsBoard configuration entry.
+
+    Returns:
+    - bool: True if the setup was successful, False otherwise.
+    """
     client = mqtt.Client("home-assistant", protocol=mqtt.MQTTv31)
     client.username_pw_set(entry.data.get('access_token'), password=None)
     client.reconnect_delay_set(min_delay=1, max_delay=120)

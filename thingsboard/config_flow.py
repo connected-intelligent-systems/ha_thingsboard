@@ -32,6 +32,19 @@ _LOGGER = logging.getLogger(__name__)
 def try_connection(
     user_input: dict[str, Any],
 ) -> int:
+    """
+    Tries to establish a connection to the MQTT broker using the provided user input.
+
+    Args:
+        user_input (dict[str, Any]): A dictionary containing the user input parameters.
+
+    Returns:
+        int: The result code indicating the connection status.
+
+    Raises:
+        queue.Empty: If the result queue is empty after the specified timeout.
+
+    """
     client = mqtt.Client("home-assistant", protocol=mqtt.MQTTv31, userdata={})
     result: queue.Queue[int] = queue.Queue(maxsize=1)
 
