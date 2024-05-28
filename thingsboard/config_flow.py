@@ -49,8 +49,11 @@ def try_connection(
     result: queue.Queue[int] = queue.Queue(maxsize=1)
 
     def on_connect(
+        client_: mqtt.Client,
+        userdata: None,
+        flags: dict[str, Any],
         result_code: int,
-        **_
+        properties: mqtt.Properties | None = None
     ) -> None:
         result.put(result_code)
 
