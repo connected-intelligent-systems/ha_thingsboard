@@ -10,9 +10,11 @@ Clone or copy the repository and copy the folder 'ha_thingsboard/thingsboard' in
 
 To enable the synchronization to a SmartLivingNEXT dataspace go to ```Settings > Devices and Services > Add Integration```
 
-Search for ```SmartLivingNEXT Dataspace``` and click on it: ![Add Integration](doc/add_integration.png)
+Search for ```SmartLivingNEXT Dataspace``` and click on it: 
+![Add Integration](doc/add_integration.png)
 
-Enter the ```MQTT Host``` and ```Access Token``` provided by your dataspace provider: ![Setup Integration](doc/setup_integration.png)
+Enter the ```MQTT Host``` and ```Access Token``` provided by your dataspace provider: 
+![Setup Integration](doc/setup_integration.png)
 
 Select the device classes (like power, data_rate or humidity) to synchronize with the dataspace and confirm by pressing ```Submit```.
 
