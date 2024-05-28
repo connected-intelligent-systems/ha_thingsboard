@@ -4,7 +4,6 @@ services:
     container_name: homeassistant
     image: "ghcr.io/home-assistant/home-assistant:stable"
     volumes:
-      - ./config/configuration.yaml:/config/configuration.yaml
       - ./thingsboard:/config/custom_components/thingsboard
       - /etc/localtime:/etc/localtime:ro
     restart: unless-stopped
@@ -12,6 +11,3 @@ services:
     network_mode: host
     environment:
       PYTHONUNBUFFERED: 1
-
-volumes:
-  ha_config:
