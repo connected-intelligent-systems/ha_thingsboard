@@ -60,70 +60,39 @@ async def get_device_id(hass: HomeAssistant, entity_id: str) -> str:
     return None
 
 
-def publish_connect(client, device_id, device_class):
-    """
-    Connects the device to Thingsboard.
-
-    Args:
-        client: The MQTT client used for publishing the message.
-        device_id (str): The ID of the device whose state is being published.
-        device_class (str): The class of the device (e.g., sensor, light).
-
-    Returns:
-        None
-    """
-    return client.publish('v1/gateway/connect', json.dumps({
+def publish_connect(client: mqtt.Client, device_id, device_class, qos: int = 0, wait: bool = False):
+    message_info = client.publish('v1/gateway/connect', json.dumps({
         'device': device_id,
         'type': device_class
-    }))
+    }), qos=qos)
+
+    if qos > 0 and wait:
+        message_info.wait_for_publish()
 
 
-def publish_state(client, device_id, state, device_class):
-    """
-    Publishes the state of a device to a specific topic in the Thingsboard MQTT broker.
+def publish_state(client: mqtt.Client, device_id, state, device_class, qos: int = 0, wait: bool = False):
+    timestamp = int(datetime.datetime.fromisoformat(
+        state.last_changed.isoformat()).timestamp() * 1000)
 
-    This function serializes the state of a device along with its device class and publishes it
-    to the 'v1/gateway/telemetry' topic. The data is formatted in JSON with the device ID as the key.
-
-    Args:
-        client: The MQTT client used for publishing the message.
-        device_id (str): The ID of the device whose state is being published.
-        state: The state object of the device, expected to have an 'as_dict' method.
-        device_class (str): The class of the device (e.g., sensor, light).
-
-    Returns:
-        None
-    """
-
-    ts = int(datetime.datetime.fromisoformat(state.last_changed.isoformat()).timestamp() * 1000)
-    return client.publish('v1/gateway/telemetry', json.dumps({
+    message_info = client.publish('v1/gateway/telemetry', json.dumps({
         device_id: [{
-            "ts": ts,
+            "ts": timestamp,
             "values": {
                 device_class: state.as_dict()['state']}
         }]
-    }), qos=1)
+    }), qos=qos)
+
+    if qos > 0 and wait:
+        message_info.wait_for_publish()
 
 
-def publish_attributes(client, device_id, attributes):
-    """
-    Publishes attributes of a device to a specific topic in the Thingsboard MQTT broker.
-
-    This function takes the attributes of a device and publishes them to the
-    'v1/gateway/attributes' topic in the MQTT broker. The data is formatted in JSON with
-    the device ID as the key.
-
-    Args:
-        client: The MQTT client used for publishing the message.
-        device_id (str): The ID of the device whose attributes are being published.
-        attributes (dict): A dictionary of the attributes to be published.
-
-    Returns:
-        None
-    """
-    return client.publish('v1/gateway/attributes', json.dumps({
+def publish_attributes(client: mqtt.Client, device_id, attributes, qos: int = 0, wait: bool = False):
+    message_info = client.publish('v1/gateway/attributes', json.dumps({
         device_id: attributes
-    }), qos=1)
+    }), qos=qos)
+
+    if qos > 0 and wait:
+        message_info.wait_for_publish()
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -143,9 +112,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """
     client = mqtt.Client("home-assistant", protocol=mqtt.MQTTv31)
     client.username_pw_set(entry.data.get('access_token'), password=None)
+    client.reconnect_delay_set(min_delay=1, max_delay=120)
     if entry.data.get('tls'):
         client.tls_set()
     client.connect(entry.data.get('host'), entry.data.get('port'))
+    client.loop_start()
+
     entity_id_cache = {}
 
     async def state_event_listener(event: Event) -> None:
@@ -155,7 +127,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 entity_id = hashlib.sha1(event.data.get(
                     'entity_id').encode('utf-8')).hexdigest()
                 device_id = await get_device_id(hass, event.data.get('entity_id'))
-                
+
                 # If the entity ID is not in the cache, publish the device's metadata and model
                 if entity_id_cache.get(entity_id) is None:
                     attributes = {
@@ -172,17 +144,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                         'thing-model': f"{entry.data.get('thing_model_repo_url')}/{device_class}.json"
                     }
 
-                    message_info = publish_connect(
-                        client=client, device_id=entity_id, device_class=device_class)
-                    message_info.wait_for_publish()
+                    publish_connect(
+                        client=client, device_id=entity_id, device_class=device_class, qos=1)
 
                     publish_attributes(
-                        client=client, device_id=entity_id, attributes=attributes)
+                        client=client, device_id=entity_id, attributes=attributes, qos=1)
 
                     entity_id_cache[entity_id] = entity_id
 
                 publish_state(client=client, device_id=entity_id,
-                             state=state, device_class=device_class)
+                              state=state, device_class=device_class, qos=1)
 
     hass.bus.async_listen(MATCH_ALL, state_event_listener)
 
