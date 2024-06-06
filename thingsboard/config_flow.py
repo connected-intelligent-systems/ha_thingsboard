@@ -62,6 +62,9 @@ def try_connection(
     client.connect_async(user_input['host'], user_input['port'])
     if user_input['tls']:
         client.tls_set()
+    if user_input['tls_insecure']:
+        client.tls_insecure_set(True)
+    client.tls_insecure_set(True)
     client.loop_start()
 
     try:
@@ -126,6 +129,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     vol.Required("host", default=config_entry.data.get('host')): str,
                     vol.Required("port", default=config_entry.data.get('port')): cv.port,
                     vol.Required("tls", default=config_entry.data.get('tls')): bool,
+                    vol.Required("tls_insecure", default=config_entry.data.get('tls_insecure')): bool,
                     vol.Required("access_token", default=config_entry.data.get('access_token')): str,
                     vol.Required("thing_model_repo_url",
                                  default=config_entry.data.get('thing_model_repo_url')): str,
@@ -165,6 +169,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     vol.Required("host", default="thingsboard.mvp-ds.dev-prd01.fsn.iotx.materna.work"): str,
                     vol.Required("port", default=8883): cv.port,
                     vol.Required("tls", default=True): cv.boolean,
+                    vol.Required("tls_insecure", default=False): cv.boolean,
                     vol.Required("access_token"): str,
                     vol.Required("thing_model_repo_url",
                                  default="https://raw.githubusercontent.com/salberternst/thing-models/main/home_assistant"): str,

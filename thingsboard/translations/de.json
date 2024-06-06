@@ -17,6 +17,7 @@
                     "host": "MQTT-Host",
                     "port": "MQTT-Port",
                     "tls": "TLS verwenden",
+                    "tls_insecure": "Akzeptiere ungültige Zertifikate",
                     "access_token": "Zugriffstoken",
                     "sensors": "Sensoren",
                     "thing_model_repo_url": "Basis-URL zu einem Repository, das W3C Thing Models enthält"
@@ -29,6 +30,7 @@
                     "host": "MQTT-Host",
                     "port": "MQTT-Port",
                     "tls": "TLS verwenden",
+                    "tls_insecure": "Akzeptiere ungültige Zertifikate",
                     "access_token": "Zugriffstoken",
                     "sensors": "Sensoren",
                     "thing_model_repo_url": "Basis-URL zu einem Repository, das W3C Thing Models enthält"

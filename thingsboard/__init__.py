@@ -177,6 +177,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     client.reconnect_delay_set(min_delay=1, max_delay=120)
     if entry.data.get('tls'):
         client.tls_set()
+    if entry.data.get('tls_insecure'):
+        client.tls_insecure_set(True)
     client.connect(entry.data.get('host'), entry.data.get('port'))
     client.loop_start()
 
