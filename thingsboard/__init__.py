@@ -94,7 +94,7 @@ def publish_state(client: mqtt.Client, entity_id: str, state,
     timestamp = int(datetime.datetime.fromisoformat(
         state.last_changed.isoformat()).timestamp() * 1000)
 
-    if state.state == "unknown":
+    if state.state == "unknown" or state.state == "unavailable":
         return
 
     message_info = client.publish('v1/gateway/telemetry', json.dumps({
@@ -177,8 +177,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     client.reconnect_delay_set(min_delay=1, max_delay=120)
     if entry.data.get('tls'):
         client.tls_set()
-    if entry.data.get('tls_insecure'):
-        client.tls_insecure_set(True)
+        if entry.data.get('tls_insecure'):
+            client.tls_insecure_set(True)
     client.connect(entry.data.get('host'), entry.data.get('port'))
     client.loop_start()
 

@@ -62,9 +62,8 @@ def try_connection(
     client.connect_async(user_input['host'], user_input['port'])
     if user_input['tls']:
         client.tls_set()
-    if user_input['tls_insecure']:
-        client.tls_insecure_set(True)
-    client.tls_insecure_set(True)
+        if user_input['tls_insecure']:
+            client.tls_insecure_set(True)
     client.loop_start()
 
     try:
