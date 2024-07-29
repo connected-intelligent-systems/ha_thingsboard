@@ -6,30 +6,13 @@ import datetime
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import Event, HomeAssistant
 from homeassistant.helpers.entity import Entity
+from homeassistant.helpers.entity_registry import (
+    async_get as async_get_entity_registry
+)
 from homeassistant.const import (
     MATCH_ALL
 )
 import paho.mqtt.client as mqtt
-
-
-async def get_platform_from_entity_id(hass, entity_id):
-    """
-    Get the platform of an entity based on its entity ID.
-
-    Parameters:
-    - hass: Home Assistant core object.
-    - entity_id: The ID of the entity.
-
-    Returns:
-    - The platform of the entity if found, otherwise None.
-    """
-    entity_registry = hass.helpers.entity_registry.async_get(hass)
-    entity = entity_registry.async_get(entity_id)
-
-    if entity:
-        return entity.platform
-
-    return None
 
 
 async def get_device_id(hass: HomeAssistant, entity_id: str) -> str:
@@ -43,7 +26,7 @@ async def get_device_id(hass: HomeAssistant, entity_id: str) -> str:
     Returns:
         str: The device ID associated with the entity ID.
     """
-    entity_registry = hass.helpers.entity_registry.async_get(hass)
+    entity_registry = async_get_entity_registry(hass)
     entity: Entity = entity_registry.async_get(entity_id)
 
     if entity is not None:
