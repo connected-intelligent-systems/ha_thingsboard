@@ -162,7 +162,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         client.tls_set()
         if entry.data.get('tls_insecure'):
             client.tls_insecure_set(True)
-    client.connect(entry.data.get('host'), entry.data.get('port'))
+    client.connect_async(entry.data.get('host'), entry.data.get('port'))
     client.loop_start()
 
     entity_id_cache = {}

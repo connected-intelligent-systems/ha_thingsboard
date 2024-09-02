@@ -162,3 +162,5 @@ cython_debug/
 config
 venv
 docker-compose.override.yaml
+
+test
