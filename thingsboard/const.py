@@ -58,5 +58,6 @@ HOME_ASSISTANT_DEVICE_CLASSES = [
     "volatile_organic_compounds",
     "voltage",
     "weight",
-    "wind_speed"
+    "wind_speed",
+    "switch"
 ]

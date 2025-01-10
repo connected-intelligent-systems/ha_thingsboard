@@ -170,7 +170,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     async def state_event_listener(event: Event) -> None:
         if state := event.data.get("new_state"):
             device_class = state.attributes.get('device_class')
-            if device_class and state.domain == "sensor" and device_class in entry.data.get('sensors'):
+            if device_class and state.domain in {"sensor", "binary_sensor"} and device_class in entry.data.get('sensors'):
                 entity_id = hashlib.sha1(event.data.get(
                     'entity_id').encode('utf-8')).hexdigest()
                 device_id, device_id_uuid = await get_device_id(hass, event.data.get('entity_id'))
