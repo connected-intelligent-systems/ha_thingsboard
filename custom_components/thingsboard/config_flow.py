@@ -132,11 +132,11 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     vol.Required("access_token", default=config_entry.data.get('access_token')): str,
                     vol.Required("thing_model_repo_url",
                                  default=config_entry.data.get('thing_model_repo_url')): str,
-                    vol.Required(CONF_SENSORS, default=config_entry.data.get(CONF_SENSORS)): selector.SelectSelector(
-                        selector.SelectSelectorConfig(
-                            options=HOME_ASSISTANT_DEVICE_CLASSES, translation_key=CONF_SENSORS, multiple=True
-                        ),
-                    ),
+                    # vol.Required(CONF_SENSORS, default=config_entry.data.get(CONF_SENSORS)): selector.SelectSelector(
+                    #     selector.SelectSelectorConfig(
+                    #         options=HOME_ASSISTANT_DEVICE_CLASSES, translation_key=CONF_SENSORS, multiple=True
+                    #     ),
+                    # ),
                     vol.Required("entity_id", default=config_entry.data.get('entity_id')): selector.EntitySelector(
                         selector.EntitySelectorConfig(
                             domain="sensor"
