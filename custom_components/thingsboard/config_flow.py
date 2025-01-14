@@ -136,8 +136,14 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         selector.SelectSelectorConfig(
                             options=HOME_ASSISTANT_DEVICE_CLASSES, translation_key=CONF_SENSORS, multiple=True
                         ),
-                    ),
-                }
+                        ),
+                    }
+                ).extend(
+                    {
+                        vol.Required(item.name): selector.EntitySelector(
+                            selector.EntitySelectorConfig(device_class=item.device_class)
+                        ) for item in self._model_configuration.inference.input
+                    }
             ),
             errors=errors
         )
