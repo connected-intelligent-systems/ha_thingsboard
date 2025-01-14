@@ -137,9 +137,11 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                             options=HOME_ASSISTANT_DEVICE_CLASSES, translation_key=CONF_SENSORS, multiple=True
                         ),
                     ),
-                    vol.Required(item.name): selector.EntitySelector(
-                        selector.EntitySelectorConfig(device_class=item.device_class)
-                    ) for item in self._model_configuration.inference.input
+                    vol.Required("entity_id", default=config_entry.data.get('entity_id')): selector.EntitySelector(
+                        selector.EntitySelectorConfig(
+                            domain="sensor"
+                        )
+                    ),
                 }
             ),
             errors=errors
