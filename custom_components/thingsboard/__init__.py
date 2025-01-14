@@ -167,47 +167,87 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     entity_id_cache = {}
 
+#    async def state_event_listener(event: Event) -> None:
+#        if state := event.data.get("new_state"):
+#            device_class = state.attributes.get('device_class')
+#            if device_class and state.domain in {"sensor", "binary_sensor"} and device_class in entry.data.get('sensors'):
+#                entity_id = hashlib.sha1(event.data.get(
+#                    'entity_id').encode('utf-8')).hexdigest()
+#                device_id, device_id_uuid = await get_device_id(hass, event.data.get('entity_id'))
+#
+#                # If the entity ID is not in the cache, publish the device's metadata and model
+#                if entity_id_cache.get(entity_id) is None:
+#                    publish_connect(
+#                        client=client,
+#                        entity_id=entity_id,
+#                        device_class=device_class,
+#                        qos=1,
+#                        wait=True
+#                    )
+#
+#                    publish_attributes(
+#                        client=client,
+#                        entity_id=entity_id,
+#                        attributes=build_attributes(
+#                            state, device_id_uuid, device_id, device_class, entry),
+#                        qos=1
+#                    )
+#
+#                    entity_id_cache[entity_id] = entity_id
+#
+#                publish_state(
+#                    client=client,
+#                    entity_id=entity_id,
+#                    state=state,
+#                    device_class=device_class,
+#                    qos=1
+#                )
+#
+#        elif state := event.data.get("entity_id"):
+#            entity_id = hashlib.sha1(state.encode('utf-8')).hexdigest()
+#            if entity_id_cache.get(entity_id) is not None:
+#                del entity_id_cache[entity_id]
+
     async def state_event_listener(event: Event) -> None:
         if state := event.data.get("new_state"):
-            device_class = state.attributes.get('device_class')
-            if device_class and state.domain in {"sensor", "binary_sensor"} and device_class in entry.data.get('sensors'):
-                entity_id = hashlib.sha1(event.data.get(
-                    'entity_id').encode('utf-8')).hexdigest()
-                device_id, device_id_uuid = await get_device_id(hass, event.data.get('entity_id'))
+            entity_id = event.data.get('entity_id')
+            if entity_id and entity_id in entry.data.get('sensors'):
+                hashed_entity_id = hashlib.sha1(entity_id.encode('utf-8')).hexdigest()
+                device_id, device_id_uuid = await get_device_id(hass, entity_id)
 
-                # If the entity ID is not in the cache, publish the device's metadata and model
-                if entity_id_cache.get(entity_id) is None:
+                if entity_id_cache.get(hashed_entity_id) is None:
                     publish_connect(
                         client=client,
-                        entity_id=entity_id,
-                        device_class=device_class,
+                        entity_id=hashed_entity_id,
+                        device_class=state.attributes.get('device_class'),
                         qos=1,
                         wait=True
                     )
 
                     publish_attributes(
                         client=client,
-                        entity_id=entity_id,
+                        entity_id=hashed_entity_id,
                         attributes=build_attributes(
-                            state, device_id_uuid, device_id, device_class, entry),
+                            state, device_id_uuid, device_id, state.attributes.get('device_class'), entry),
                         qos=1
                     )
 
-                    entity_id_cache[entity_id] = entity_id
+                    entity_id_cache[hashed_entity_id] = hashed_entity_id
 
                 publish_state(
                     client=client,
-                    entity_id=entity_id,
+                    entity_id=hashed_entity_id,
                     state=state,
-                    device_class=device_class,
+                    device_class=state.attributes.get('device_class'),
                     qos=1
                 )
 
-        elif state := event.data.get("entity_id"):
-            entity_id = hashlib.sha1(state.encode('utf-8')).hexdigest()
-            if entity_id_cache.get(entity_id) is not None:
-                del entity_id_cache[entity_id]
+        elif entity_id := event.data.get("entity_id"):
+            hashed_entity_id = hashlib.sha1(entity_id.encode('utf-8')).hexdigest()
+            if entity_id_cache.get(hashed_entity_id) is not None:
+                del entity_id_cache[hashed_entity_id]
 
     hass.bus.async_listen(MATCH_ALL, state_event_listener)
 
     return True
+
