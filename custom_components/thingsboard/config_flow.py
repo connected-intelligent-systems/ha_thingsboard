@@ -182,7 +182,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     #         options=HOME_ASSISTANT_DEVICE_CLASSES, translation_key=CONF_SENSORS, multiple=True
                     #     ),
                     # ),
-                    vol.Required("entity_id"): selector.SelectSelector(
+                    vol.Required("entity_id"): selector.EntitySelector(
                         selector.EntitySelectorConfig(
                             domain="sensor", multiple=True
                         )
