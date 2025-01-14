@@ -211,7 +211,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     async def state_event_listener(event: Event) -> None:
         if state := event.data.get("new_state"):
             entity_id = event.data.get('entity_id')
-            if entity_id and entity_id in entry.data.get('sensors'):
+            if entity_id and entity_id in entry.data.get('entities'):
                 hashed_entity_id = hashlib.sha1(entity_id.encode('utf-8')).hexdigest()
                 device_id, device_id_uuid = await get_device_id(hass, entity_id)
 
