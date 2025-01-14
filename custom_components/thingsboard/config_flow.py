@@ -177,10 +177,15 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     vol.Required("access_token"): str,
                     vol.Required("thing_model_repo_url",
                                  default="https://raw.githubusercontent.com/salberternst/thing-models/main/home_assistant"): str,
-                    vol.Required(CONF_SENSORS, default=[]): selector.SelectSelector(
-                        selector.SelectSelectorConfig(
-                            options=HOME_ASSISTANT_DEVICE_CLASSES, translation_key=CONF_SENSORS, multiple=True
-                        ),
+                    # vol.Required(CONF_SENSORS, default=[]): selector.SelectSelector(
+                    #     selector.SelectSelectorConfig(
+                    #         options=HOME_ASSISTANT_DEVICE_CLASSES, translation_key=CONF_SENSORS, multiple=True
+                    #     ),
+                    # ),
+                    vol.Required("entity_id"): selector.EntitySelector(
+                        selector.EntitySelectorConfig(
+                            domain="sensor"
+                        )
                     ),
                 }
             ),
