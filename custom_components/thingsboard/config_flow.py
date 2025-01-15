@@ -137,6 +137,11 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                             options=HOME_ASSISTANT_DEVICE_CLASSES, translation_key=CONF_SENSORS, multiple=True
                         ),
                     ),
+                    vol.Required("entities", default=config_entry.data.get("entities")): selector.EntitySelector(
+                        selector.EntitySelectorConfig(
+                            domain="sensor", multiple=True
+                        ),
+                    ),
                 }
             ),
             errors=errors
@@ -175,6 +180,11 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     vol.Required(CONF_SENSORS, default=[]): selector.SelectSelector(
                         selector.SelectSelectorConfig(
                             options=HOME_ASSISTANT_DEVICE_CLASSES, translation_key=CONF_SENSORS, multiple=True
+                        ),
+                    ),
+                    vol.Required("entities", default=[]): selector.EntitySelector(
+                        selector.EntitySelectorConfig(
+                            domain="sensor", multiple=True
                         ),
                     ),
                 }

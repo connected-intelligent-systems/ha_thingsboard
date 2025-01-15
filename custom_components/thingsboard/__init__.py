@@ -202,6 +202,39 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     device_class=device_class,
                     qos=1
                 )
+            
+            entity_id = event.data.get('entity_id')
+            if entity_id and entity_id in entry.data.get('entities'):
+                hashed_entity_id = hashlib.sha1(entity_id.encode('utf-8')).hexdigest()
+                device_id, device_id_uuid = await get_device_id(hass, entity_id)
+
+                if entity_id_cache.get(hashed_entity_id) is None:
+                    publish_connect(
+                        client=client,
+                        entity_id=hashed_entity_id,
+                        device_class=state.attributes.get('device_class'),
+                        qos=1,
+                        wait=True
+                    )
+
+                    publish_attributes(
+                        client=client,
+                        entity_id=hashed_entity_id,
+                        attributes=build_attributes(
+                            state, device_id_uuid, device_id, state.attributes.get('device_class'), entry),
+                        qos=1
+                    )
+
+                    entity_id_cache[hashed_entity_id] = hashed_entity_id
+
+                publish_state(
+                    client=client,
+                    entity_id=hashed_entity_id,
+                    state=state,
+                    device_class=state.attributes.get('device_class'),
+                    qos=1
+                )
+
 
         elif state := event.data.get("entity_id"):
             entity_id = hashlib.sha1(state.encode('utf-8')).hexdigest()
@@ -211,3 +244,4 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.bus.async_listen(MATCH_ALL, state_event_listener)
 
     return True
+
