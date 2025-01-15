@@ -6,6 +6,12 @@ Synchronizes home assistant sensors over MQTT to a SmartLivingNEXT dataspace.
 
 Clone or copy the repository and copy the folder 'ha_thingsboard/thingsboard' into '/config/custom_components/thingsboard'
 
+## Install as HACS Integration
+
+[Install HACS](https://www.hacs.xyz/docs/use/download/download/#to-download-hacs) to your Homeassistant installation. Inside HACS click on the three dots on the top right --> custom repositories and add this repository as integration. Now you should be able to find and install the SmartLvingDataspace ingration via the HACS UI.
+
+To update the integration, simply download it again from the HACS UI.
+
 ## Usage
 
 To enable the synchronization to a SmartLivingNEXT dataspace go to ```Settings > Devices and Services > Add Integration```
@@ -18,7 +24,7 @@ Enter the ```MQTT Host``` and ```Access Token``` provided by your dataspace prov
 
 Select the device classes (like power, data_rate or humidity) to synchronize with the dataspace and confirm by pressing ```Submit```.
 
-__ALL__ entities with selected device classes will be synchronized. There is currently no way of selecting specific devices or entities to synchronize.
+__ALL__ entities with selected device classes will be synchronized if selected this way. Alternatively, you can also select individual entities from the drop-down menu below. 
 
 You can change the configuration later on by selecting ```Reconfigure``` in the SmartLivingNEXT Dataspace integration.
 
