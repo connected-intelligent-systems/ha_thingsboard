@@ -8,7 +8,7 @@ Clone or copy the repository and copy the folder 'ha_thingsboard/thingsboard' in
 
 ## Install as HACS Integration
 
-[Install HACS](https://www.hacs.xyz/docs/use/download/download/#to-download-hacs) to your Homeassistant installation. Inside HACS click on the three dots on the top right --> custom repositories and add this repository as integration. Now you should be able to find and install the SmartLvingDataspace ingration via the HACS UI.
+[Install HACS](https://www.hacs.xyz/docs/use/download/download/#to-download-hacs) to your Homeassistant installation. Inside HACS click on the three dots on the top right --> custom repositories and add this repository as integration. Now you should be able to find and install the SmartLvingNext Dataspace ingration via the HACS UI.
 
 To update the integration, simply download it again from the HACS UI.
 
