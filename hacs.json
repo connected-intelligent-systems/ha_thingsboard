@@ -1,5 +1,6 @@
 {
   "name": "SmartLivingNext Dataspace",
   "zip_release": false,
-  "contnt_in_root": true
+  "content_in_root": true,
+  "hide_default_branch": true
 }
