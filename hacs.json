@@ -1,4 +1,5 @@
 {
   "name": "SmartLivingNext Dataspace",
-  "zip_release": false
+  "zip_release": false,
+  "contnt_in_root": true
 }
