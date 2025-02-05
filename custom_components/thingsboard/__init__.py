@@ -4,13 +4,14 @@ import hashlib
 import uuid
 import datetime
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import Event, HomeAssistant
+from homeassistant.core import Event, HomeAssistant, callback
 from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.entity_registry import (
     async_get as async_get_entity_registry
 )
 from homeassistant.const import (
-    MATCH_ALL
+    EVENT_STATE_REPORTED,
+    EVENT_STATE_CHANGED
 )
 import paho.mqtt.client as mqtt
 
@@ -52,6 +53,9 @@ def publish_connect(client: mqtt.Client, entity_id: str, device_class: str,
         mqtt.MQTTMessageInfo: Information about the published message.
 
     """
+    if not device_class:
+        device_class = "generic"
+        
     message_info = client.publish('v1/gateway/connect', json.dumps({
         'device': entity_id,
         'type': device_class
@@ -75,11 +79,11 @@ def publish_state(client: mqtt.Client, entity_id: str, state,
         wait (bool, optional): Whether to wait for the message to be published before returning. Defaults to False.
     """
     timestamp = int(datetime.datetime.fromisoformat(
-        state.last_changed.isoformat()).timestamp() * 1000)
+        state.last_reported.isoformat()).timestamp() * 1000)
 
     if state.state == "unknown" or state.state == "unavailable":
         return
-
+    
     message_info = client.publish('v1/gateway/telemetry', json.dumps({
         entity_id: [{
             "ts": timestamp,
@@ -126,12 +130,15 @@ def build_attributes(state, device_id_uuid, device_id, device_class, entry):
     Returns:
         dict: A dictionary of attributes for the Thing in Thingsboard.
     """
+    if not device_class:
+        device_class = "generic"
+
     return {
         'thing-metadata': {
             'parents': [
                 device_id_uuid
             ] if device_id is not None else [],
-            'description': state.attributes.get('friendly_name'),
+            'model': state.attributes.get('model'),
             'icon': state.attributes.get('icon'),
             device_class: {
                 'unit': state.attributes.get('unit_of_measurement')
@@ -143,105 +150,111 @@ def build_attributes(state, device_id_uuid, device_id, device_class, entry):
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """
-    Set up an entry for the ThingsBoard integration.
-
-    This function is called by Home Assistant when a ThingsBoard entry is being set up.
-    It establishes a connection to the ThingsBoard MQTT broker and starts listening for state events.
-
-    Parameters:
-    - hass (HomeAssistant): The Home Assistant instance.
-    - entry (ConfigEntry): The ThingsBoard configuration entry.
-
-    Returns:
-    - bool: True if the setup was successful, False otherwise.
-    """
+    Set up the ThingsBoard integration from a configuration entry.
+    This function initializes the MQTT client, sets up the connection parameters,
+    and starts the MQTT loop. It also registers an event listener to process state
+    events and handle device registration and state publishing.
+        hass (HomeAssistant): The Home Assistant instance.
+        entry (ConfigEntry): The configuration entry containing setup data.
+        bool: True if the setup was successful, False otherwise.
+    """    
     client = mqtt.Client("home-assistant", protocol=mqtt.MQTTv31)
-    client.username_pw_set(entry.data.get('access_token'), password=None)
+    client.username_pw_set(entry.data.get('access_token'))
     client.reconnect_delay_set(min_delay=1, max_delay=120)
+
     if entry.data.get('tls'):
         client.tls_set()
         if entry.data.get('tls_insecure'):
             client.tls_insecure_set(True)
+
     client.connect_async(entry.data.get('host'), entry.data.get('port'))
     client.loop_start()
 
     entity_id_cache = {}
 
-    async def state_event_listener(event: Event) -> None:
-        if state := event.data.get("new_state"):
-            device_class = state.attributes.get('device_class')
-            if device_class and state.domain in {"sensor", "binary_sensor"} and device_class in entry.data.get('sensors'):
-                entity_id = hashlib.sha1(event.data.get(
-                    'entity_id').encode('utf-8')).hexdigest()
-                device_id, device_id_uuid = await get_device_id(hass, event.data.get('entity_id'))
+    async def process_state_reported(event: Event) -> None:
+        """
+        Process a state event and handle device registration and state publishing.
+        Args:
+            event (Event): The event containing the state change information.
+        Returns:
+            None
+        """
+        state = event.data.get("new_state")
+        entity_id = event.data.get("entity_id")
+    
+        if not state or not entity_id:
+            return
 
-                # If the entity ID is not in the cache, publish the device's metadata and model
-                if entity_id_cache.get(entity_id) is None:
-                    publish_connect(
-                        client=client,
-                        entity_id=entity_id,
-                        device_class=device_class,
-                        qos=1,
-                        wait=True
-                    )
+        hashed_entity_id = hashlib.sha1(entity_id.encode('utf-8')).hexdigest()
+        device_class = state.attributes.get("device_class")
+        
+        if (
+            device_class and state.domain in {"sensor", "binary_sensor"} and device_class in entry.data.get("sensors")
+        ) or entity_id in entry.data.get("entities"):
+            device_id, device_id_uuid = await get_device_id(hass, entity_id)
 
-                    publish_attributes(
-                        client=client,
-                        entity_id=entity_id,
-                        attributes=build_attributes(
-                            state, device_id_uuid, device_id, device_class, entry),
-                        qos=1
-                    )
-
-                    entity_id_cache[entity_id] = entity_id
-
-                publish_state(
-                    client=client,
-                    entity_id=entity_id,
-                    state=state,
-                    device_class=device_class,
-                    qos=1
-                )
+            await handle_device_registration(
+                hashed_entity_id, state, device_id, device_id_uuid, device_class, entry
+            )
             
-            entity_id = event.data.get('entity_id')
-            if entity_id and entity_id in entry.data.get('entities'):
-                hashed_entity_id = hashlib.sha1(entity_id.encode('utf-8')).hexdigest()
-                device_id, device_id_uuid = await get_device_id(hass, entity_id)
+            publish_state(client, hashed_entity_id, state, device_class, qos=1)
 
-                if entity_id_cache.get(hashed_entity_id) is None:
-                    publish_connect(
-                        client=client,
-                        entity_id=hashed_entity_id,
-                        device_class=state.attributes.get('device_class'),
-                        qos=1,
-                        wait=True
-                    )
+    async def handle_device_registration(entity_id, state, device_id, device_id_uuid, device_class, entry):
+        """
+        Handles the registration of a device.
+        This function checks if the device identified by `entity_id` is already
+        registered in the `entity_id_cache`. If not, it publishes a connection
+        message and attributes to the ThingsBoard server and updates the cache.
+        Args:
+            entity_id (str): The unique identifier for the entity.
+            state (Any): The current state of the entity.
+            device_id (str): The unique identifier for the device.
+            device_id_uuid (str): The UUID for the device.
+            device_class (str): The class/type of the device.
+            entry (Any): Additional entry data for the device.
+        Returns:
+            None
+        """
+        
+        if entity_id in entity_id_cache:
+            return
 
-                    publish_attributes(
-                        client=client,
-                        entity_id=hashed_entity_id,
-                        attributes=build_attributes(
-                            state, device_id_uuid, device_id, state.attributes.get('device_class'), entry),
-                        qos=1
-                    )
+        publish_connect(client, entity_id, device_class, qos=1, wait=True)
+        publish_attributes(
+            client,
+            entity_id,
+            build_attributes(state, device_id_uuid, device_id, device_class, entry),
+            qos=1
+        )
+        entity_id_cache[entity_id] = True
+        
+    def should_process_event(event_data: Event) -> bool:
+        """Determine if the event should be processed based on entity_id or device_class."""
+        entity_id = event_data.get("entity_id")
 
-                    entity_id_cache[hashed_entity_id] = hashed_entity_id
+        if entity_id in entry.data.get("entities", []):
+            return True
 
-                publish_state(
-                    client=client,
-                    entity_id=hashed_entity_id,
-                    state=state,
-                    device_class=state.attributes.get('device_class'),
-                    qos=1
-                )
+        device_class = event_data.get("device_class")
+        if device_class in entry.data.get("sensors", []):
+            return True
 
+        return False
 
-        elif state := event.data.get("entity_id"):
-            entity_id = hashlib.sha1(state.encode('utf-8')).hexdigest()
-            if entity_id_cache.get(entity_id) is not None:
-                del entity_id_cache[entity_id]
+    hass.bus.async_listen(
+        EVENT_STATE_REPORTED, 
+        process_state_reported, 
+        event_filter=callback(should_process_event),
+        run_immediately=True
+    )
 
-    hass.bus.async_listen(MATCH_ALL, state_event_listener)
+    
+    hass.bus.async_listen(
+        EVENT_STATE_CHANGED, 
+        process_state_reported,
+        run_immediately=True
+    )
 
     return True
 
