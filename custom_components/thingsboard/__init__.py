@@ -158,7 +158,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         entry (ConfigEntry): The configuration entry containing setup data.
         bool: True if the setup was successful, False otherwise.
     """    
-    client = mqtt.Client("home-assistant", protocol=mqtt.MQTTv31)
+    client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION1, "home-assistant", protocol=mqtt.MQTTv31)
     client.username_pw_set(entry.data.get('access_token'))
     client.reconnect_delay_set(min_delay=1, max_delay=120)
 
