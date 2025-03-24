@@ -1,4 +1,3 @@
-"""Config flow for thingsboard integration."""
 from __future__ import annotations
 import logging
 import queue
@@ -7,67 +6,45 @@ import voluptuous as vol
 import paho.mqtt.client as mqtt
 from homeassistant import config_entries
 from homeassistant.core import HomeAssistant
-from homeassistant.const import (
-    CONF_SENSORS
-)
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import selector
 import homeassistant.helpers.config_validation as cv
-from .const import DOMAIN, HOME_ASSISTANT_DEVICE_CLASSES
+from .const import DOMAIN, MQTT_TIMEOUT, DEFAULT_HOST, DEFAULT_PORT, DEFAULT_TLS, DEFAULT_TLS_INSECURE, DEFAULT_THING_MODEL_URL
+from .utils import get_all_device_classes
 
-
-class CannotConnect(HomeAssistantError):
-    """Error to indicate we cannot connect."""
-
-
-class InvalidAuth(HomeAssistantError):
-    """Error to indicate there is invalid auth."""
-
-
-MQTT_TIMEOUT = 5
 _LOGGER = logging.getLogger(__name__)
 
 
-def try_connection(
-    user_input: dict[str, Any],
-) -> int:
-    """
-    Tries to establish a connection to the MQTT broker using the provided user input.
+class CannotConnect(HomeAssistantError):
+    """Error indicating connection failure."""
 
-    Args:
-        user_input (dict[str, Any]): A dictionary containing the user input parameters.
 
-    Returns:
-        int: The result code indicating the connection status.
+class InvalidAuth(HomeAssistantError):
+    """Error indicating authentication failure."""
 
-    Raises:
-        queue.Empty: If the result queue is empty after the specified timeout.
 
-    """
-    client = mqtt.Client("home-assistant", protocol=mqtt.MQTTv31, userdata={})
-    result: queue.Queue[int] = queue.Queue(maxsize=1)
+async def try_connection(hass: HomeAssistant, user_input: dict[str, Any]) -> int:
+    """Test MQTT connection with provided credentials."""
+    client = mqtt.Client(protocol=mqtt.MQTTv31)
+    result_queue: queue.Queue[int] = queue.Queue(maxsize=1)
 
-    def on_connect(
-        client_: mqtt.Client,
-        userdata: None,
-        flags: dict[str, Any],
-        result_code: int,
-        properties: mqtt.Properties | None = None
-    ) -> None:
-        result.put(result_code)
+    def on_connect(client_: mqtt.Client, userdata: None, flags: dict[str, Any],
+                   result_code: int, properties: mqtt.Properties | None = None) -> None:
+        result_queue.put(result_code)
 
     client.on_connect = on_connect
-    client.username_pw_set(user_input['access_token'], password=None)
-    client.connect_async(user_input['host'], user_input['port'])
-    if user_input['tls']:
-        client.tls_set()
-        if user_input['tls_insecure']:
-            client.tls_insecure_set(True)
-    client.loop_start()
+    client.username_pw_set(user_input["access_token"], password=None)
+    client.connect_async(user_input["host"], user_input["port"])
 
+    if user_input["tls"]:
+        await hass.async_add_executor_job(client.tls_set)
+        if user_input["tls_insecure"]:
+            client.tls_insecure_set(True)
+
+    client.loop_start()
     try:
-        return result.get(timeout=5)
+        return result_queue.get(timeout=MQTT_TIMEOUT)
     except queue.Empty:
         return mqtt.CONNACK_REFUSED_SERVER_UNAVAILABLE
     finally:
@@ -75,37 +52,65 @@ def try_connection(
         client.loop_stop()
 
 
-async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, Any]:
-    """Validate the user input allows us to connect."""
-    connect_result = await hass.async_add_executor_job(
-        try_connection, data
-    )
+async def validate_mqtt_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, Any]:
+    """Validate MQTT-specific user input and establish connection."""
+    result = await try_connection(hass, data)
 
-    if connect_result == mqtt.CONNACK_ACCEPTED:
+    if result == mqtt.CONNACK_ACCEPTED:
         return {"title": data["host"]}
+    if result in (mqtt.AUTH, mqtt.CONNACK_REFUSED_BAD_USERNAME_PASSWORD):
+        raise InvalidAuth
+    raise CannotConnect
 
-    if connect_result in (mqtt.AUTH, mqtt.CONNACK_REFUSED_BAD_USERNAME_PASSWORD):
-        raise InvalidAuth()
-    raise CannotConnect()
+
+def get_mqtt_schema(defaults: dict[str, Any] = {}) -> vol.Schema:
+    """Generate schema for MQTT settings."""
+    return vol.Schema({
+        vol.Required("host", default=defaults.get("host", DEFAULT_HOST)): str,
+        vol.Required("port", default=defaults.get("port", DEFAULT_PORT)): cv.port,
+        vol.Required("tls", default=defaults.get("tls", DEFAULT_TLS)): bool,
+        vol.Required("tls_insecure", default=defaults.get("tls_insecure", DEFAULT_TLS_INSECURE)): bool,
+        vol.Required("access_token", default=defaults.get("access_token", "")): str,
+        vol.Required("thing_model_repo_url",
+                     default=defaults.get("thing_model_repo_url", DEFAULT_THING_MODEL_URL)): str,
+    })
+
+
+def get_entities_schema(device_classes: list[str], defaults: dict[str, Any] = {}) -> vol.Schema:
+    """Generate schema for entity and sensor selection."""
+    return vol.Schema({
+        vol.Required("sensors", default=defaults.get("sensors", [])):
+            selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=device_classes,
+                    translation_key="sensors",
+                    multiple=True
+                )
+        ),
+        vol.Required("entities", default=defaults.get("entities", [])):
+            selector.EntitySelector(
+                selector.EntitySelectorConfig(domain="sensor", multiple=True)
+        ),
+    })
 
 
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
-    """Handle a config flow for thingsboard."""
-
+    """Handle ThingsBoard configuration flow."""
     VERSION = 1
 
-    async def async_step_reconfigure(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
-        """Handle the initial step."""
+    def __init__(self):
+        """Initialize flow instance."""
+        self._mqtt_data: dict[str, Any] = {}
+
+    async def async_step_user(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+        """Handle MQTT configuration step."""
         errors: dict[str, str] = {}
-        config_entry = self.hass.config_entries.async_get_entry(
-            self.context["entry_id"]
-        )
 
         if user_input is not None:
             try:
-                info = await validate_input(self.hass, user_input)
+                await validate_mqtt_input(self.hass, user_input)
+                self._mqtt_data = user_input
+                return await self.async_step_entities()
             except CannotConnect:
                 errors["base"] = "cannot_connect"
             except InvalidAuth:
@@ -113,81 +118,59 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             except Exception:
                 _LOGGER.exception("Unexpected exception")
                 errors["base"] = "unknown"
-            else:
-                self.hass.config_entries.async_update_entry(
-                    config_entry,
-                    data=user_input,
-                    title=info["title"],
-                )
-                return self.async_abort(reason="updated_configuration")
-
-        return self.async_show_form(
-            step_id="reconfigure",
-            data_schema=vol.Schema(
-                {
-                    vol.Required("host", default=config_entry.data.get('host')): str,
-                    vol.Required("port", default=config_entry.data.get('port')): cv.port,
-                    vol.Required("tls", default=config_entry.data.get('tls')): bool,
-                    vol.Required("tls_insecure", default=config_entry.data.get('tls_insecure')): bool,
-                    vol.Required("access_token", default=config_entry.data.get('access_token')): str,
-                    vol.Required("thing_model_repo_url",
-                                 default=config_entry.data.get('thing_model_repo_url')): str,
-                    vol.Required(CONF_SENSORS, default=config_entry.data.get(CONF_SENSORS)): selector.SelectSelector(
-                        selector.SelectSelectorConfig(
-                            options=HOME_ASSISTANT_DEVICE_CLASSES, translation_key=CONF_SENSORS, multiple=True
-                        ),
-                    ),
-                    vol.Required("entities", default=config_entry.data.get("entities")): selector.EntitySelector(
-                        selector.EntitySelectorConfig(
-                            domain="sensor", multiple=True
-                        ),
-                    ),
-                }
-            ),
-            errors=errors
-        )
-
-    async def async_step_user(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
-        """Handle the initial step."""
-        errors: dict[str, str] = {}
-
-        if user_input is not None:
-            try:
-                info = await validate_input(self.hass, user_input)
-            except CannotConnect:
-                errors["base"] = "cannot_connect"
-            except InvalidAuth:
-                errors["base"] = "invalid_auth"
-            except Exception:
-                _LOGGER.exception("Unexpected exception")
-                errors["base"] = "unknown"
-            else:
-                return self.async_create_entry(title=info["title"], data=user_input)
 
         return self.async_show_form(
             step_id="user",
-            data_schema=vol.Schema(
-                {
-                    vol.Required("host", default="thingsboard.mvp-ds.dev-prd01.fsn.iotx.materna.work"): str,
-                    vol.Required("port", default=8883): cv.port,
-                    vol.Required("tls", default=True): cv.boolean,
-                    vol.Required("tls_insecure", default=False): cv.boolean,
-                    vol.Required("access_token"): str,
-                    vol.Required("thing_model_repo_url",
-                                 default="https://raw.githubusercontent.com/salberternst/thing-models/main/home_assistant"): str,
-                    vol.Required(CONF_SENSORS, default=[]): selector.SelectSelector(
-                        selector.SelectSelectorConfig(
-                            options=HOME_ASSISTANT_DEVICE_CLASSES, translation_key=CONF_SENSORS, multiple=True
-                        ),
-                    ),
-                    vol.Required("entities", default=[]): selector.EntitySelector(
-                        selector.EntitySelectorConfig(
-                            domain="sensor", multiple=True
-                        ),
-                    ),
-                }
-            ),
+            data_schema=get_mqtt_schema(),
+            errors=errors
+        )
+
+    async def async_step_entities(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+        """Handle entity and sensor selection step."""
+        errors: dict[str, str] = {}
+        config_entry = None
+
+        if "entry_id" in self.context:
+            config_entry = self.hass.config_entries.async_get_entry(self.context["entry_id"])
+
+        if user_input is not None:
+            try:
+                combined_data = {**self._mqtt_data, **user_input}
+                if config_entry:
+                    return self.async_update_reload_and_abort(config_entry, data_updates=combined_data)
+                return self.async_create_entry(title=self._mqtt_data["host"], data=combined_data)
+            except Exception:
+                _LOGGER.exception("Unexpected exception")
+                errors["base"] = "unknown"
+
+        device_classes = await get_all_device_classes(self.hass)
+        return self.async_show_form(
+            step_id="entities",
+            data_schema=get_entities_schema(device_classes, config_entry.data if config_entry else {}),
+            errors=errors
+        )
+
+    async def async_step_reconfigure(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+        """Handle reconfiguration starting with MQTT settings."""
+        config_entry = self.hass.config_entries.async_get_entry(
+            self.context["entry_id"])
+        errors: dict[str, str] = {}
+
+        if user_input is not None:
+            try:
+                await validate_mqtt_input(self.hass, user_input)
+                self._mqtt_data = user_input
+                return await self.async_step_entities()
+            except CannotConnect:
+                errors["base"] = "cannot_connect"
+            except InvalidAuth:
+                errors["base"] = "invalid_auth"
+            except Exception:
+                _LOGGER.exception("Unexpected exception")
+                errors["base"] = "unknown"
+
+        return self.async_show_form(
+            step_id="reconfigure",
+            data_schema=get_mqtt_schema(config_entry.data),
             errors=errors
         )

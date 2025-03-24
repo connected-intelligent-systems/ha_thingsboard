@@ -1,41 +1,43 @@
 {
     "config": {
-        "abort": {
-            "already_configured": "Device is already configured",
-            "updated_configuration": "Updated configuration"
+      "step": {
+        "user": {
+          "title": "Configure MQTT Connection",
+          "description": "Enter the details to connect to your ThingsBoard MQTT broker.",
+          "data": {
+            "host": "MQTT Broker Host",
+            "port": "MQTT Broker Port",
+            "tls": "Use TLS",
+            "tls_insecure": "Allow Insecure TLS",
+            "access_token": "Access Token",
+            "thing_model_repo_url": "Thing Model Repository URL"
+          }
         },
-        "error": {
-            "cannot_connect": "Failed to connect",
-            "invalid_auth": "Invalid authentication",
-            "unknown": "Unexpected error"
+        "entities": {
+          "title": "Select Sensors and Entities",
+          "description": "Select the sensors and entities to synchronize with ThingsBoard.",
+          "data": {
+            "sensors": "Sensors",
+            "entities": "Entities"
+          }
         },
-        "step": {
-            "user": {
-                "title": "Setup Synchronization",
-                "description": "![Location of button on bridge](https://smartlivingnext.de/wp-content/uploads/2023/12/SmartLivingNEXT-bw-1.svg)",
-                "data": {
-                    "host": "MQTT Host",
-                    "port": "MQTT Port",
-                    "tls": "Use TLS",
-                    "tls_insecure": "Allow insecure TLS",
-                    "access_token": "Access Token",
-                    "sensors": "Sensors",
-                    "thing_model_repo_url": "Base URL to a repository that contains W3C Thing Models"
-                }
-            },
-            "reconfigure": {
-                "title": "Reconfigure Synchronization",
-                "description": "![Location of button on bridge](https://smartlivingnext.de/wp-content/uploads/2023/12/SmartLivingNEXT-bw-1.svg)",
-                "data": {
-                    "host": "MQTT Host",
-                    "port": "MQTT Port",
-                    "tls": "Use TLS",
-                    "tls_insecure": "Allow insecure TLS",
-                    "access_token": "Access Token",
-                    "sensors": "Sensors",
-                    "thing_model_repo_url": "Base URL to a repository that contains W3C Thing Models"
-                }
-            }
+        "reconfigure": {
+          "title": "Reconfigure MQTT Connection",
+          "description": "Update the MQTT connection settings for ThingsBoard.",
+          "data": {
+            "host": "MQTT Broker Host",
+            "port": "MQTT Broker Port",
+            "tls": "Use TLS",
+            "tls_insecure": "Allow Insecure TLS",
+            "access_token": "Access Token",
+            "thing_model_repo_url": "Thing Model Repository URL"
+          }
         }
+      },
+      "error": {
+        "cannot_connect": "Failed to connect to the MQTT broker. Please check the host and port.",
+        "invalid_auth": "Authentication failed. Please verify your access token.",
+        "unknown": "An unexpected error occurred. Please check the logs for more information."
+      }
     }
-}
+  }

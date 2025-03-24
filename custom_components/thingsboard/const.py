@@ -1,63 +1,12 @@
 """Constants for the thingsboard integration."""
 
 DOMAIN = "thingsboard"
-
-HOME_ASSISTANT_DEVICE_CLASSES = [
-    "battery",
-    "cold",
-    "connectivity",
-    "door",
-    "garage_door",
-    "gas",
-    "heat",
-    "light",
-    "lock",
-    "moisture",
-    "motion",
-    "moving",
-    "occupancy",
-    "opening",
-    "plug",
-    "power",
-    "presence",
-    "problem",
-    "safety",
-    "smoke",
-    "sound",
-    "update",
-    "vibration",
-    "window",
-    "apparent_power",
-    "aqi",
-    "carbon_dioxide",
-    "carbon_monoxide",
-    "current",
-    "data_rate",
-    "data_size",
-    "distance",
-    "energy",
-    "enum",
-    "frequency",
-    "humidity",
-    "illuminance",
-    "monetary",
-    "nitrogen_dioxide",
-    "nitrogen_monoxide",
-    "nitrous_oxide",
-    "ozone",
-    "pm1",
-    "pm10",
-    "pm25",
-    "power_factor",
-    "pressure",
-    "signal_strength",
-    "speed",
-    "sulphur_dioxide",
-    "temperature",
-    "timestamp",
-    "volatile_organic_compounds",
-    "voltage",
-    "weight",
-    "wind_speed",
-    "switch"
-]
+MQTT_TIMEOUT = 5
+DEFAULT_HOST = "mqtt.example.local"
+DEFAULT_PORT = 8883
+DEFAULT_TLS = True
+DEFAULT_TLS_INSECURE = False
+DEFAULT_THING_MODEL_URL = "https://raw.githubusercontent.com/connected-intelligent-systems/thing-models/main/home_assistant"
+QOS_DEFAULT = 0
+QOS_RELIABLE = 1
+TIMESTAMP_MULTIPLIER = 1000

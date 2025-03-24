@@ -12,5 +12,13 @@ services:
     environment:
       PYTHONUNBUFFERED: 1
 
+
+  mosquitto:
+    image: eclipse-mosquitto:latest
+    container_name: mosquitto
+    ports:
+      - "1883:1883"
+    command: mosquitto -c /mosquitto-no-auth.conf
+
 volumes:
   ha_config:
