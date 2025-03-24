@@ -22,7 +22,7 @@ Search for ```SmartLivingNEXT Dataspace``` and click on it:
 Enter the ```MQTT Host``` and ```Access Token``` provided by your dataspace provider:  
 ![Setup MQTT](doc/setup_integration_1.png)
 
-Select the device classes (like power, data_rate or humidity) to synchronize with the dataspace and confirm by pressing ```Submit```.
+Select the device classes (like power, data_rate or humidity) to synchronize with the dataspace and confirm by pressing ```Submit```:  
 ![Setup Entities](doc/setup_integration_2.png)
 
 __ALL__ entities with selected device classes will be synchronized if selected this way. Alternatively, you can also select individual entities from the drop-down menu below. 
