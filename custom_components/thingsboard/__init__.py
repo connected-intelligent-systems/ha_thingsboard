@@ -7,9 +7,8 @@ from typing import Any
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import Event, HomeAssistant, callback
 from homeassistant.helpers.entity_registry import async_get as async_get_entity_registry
-from homeassistant.const import EVENT_STATE_REPORTED, EVENT_STATE_CHANGED
 import paho.mqtt.client as mqtt
-from .const import QOS_DEFAULT, QOS_RELIABLE, TIMESTAMP_MULTIPLIER
+from .const import QOS_DEFAULT, QOS_RELIABLE, TIMESTAMP_MULTIPLIER, EVENT_STATE_REPORTED, EVENT_STATE_CHANGED
 
 
 class ThingsBoardClientManager:
