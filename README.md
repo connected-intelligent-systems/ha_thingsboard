@@ -40,6 +40,7 @@ To provide custom models for your devices/entities you need to provide a link to
 ## Authors
 
 Sebastian Alberternst <sebastian.alberternst@dfki.de>
+Sebastian Hocke <sebastian.hocke@dfki.de>
 
 ## License
 
