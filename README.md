@@ -20,9 +20,10 @@ Search for ```SmartLivingNEXT Dataspace``` and click on it:
 ![Add Integration](doc/add_integration.png)
 
 Enter the ```MQTT Host``` and ```Access Token``` provided by your dataspace provider:  
-![Setup Integration](doc/setup_integration.png)
+![Setup MQTT](doc/setup_integration_1.png)
 
 Select the device classes (like power, data_rate or humidity) to synchronize with the dataspace and confirm by pressing ```Submit```.
+![Setup Entities](doc/setup_integration_2.png)
 
 __ALL__ entities with selected device classes will be synchronized if selected this way. Alternatively, you can also select individual entities from the drop-down menu below. 
 
@@ -35,11 +36,11 @@ W3C Thing Descriptions are automatically generated using Thing Models in the Thi
 
 Thing Models are provided for the most common device classes in the default [repository](https://raw.githubusercontent.com/salberternst/thing-models/main/home_assistant).
 
-To provide custom models for your devices/entities you need to provide a link to a repository which stores them. For the final thing model the following url is used ```$REPOSITORY_URL/$DEVICE_CLASS.json``` e.g. ```https://https://raw.githubusercontent.com/example/example-thing-model-repository/main/power.json```
+To provide custom models for your devices/entities you need to provide a link to a repository which stores them. For the final thing model the following url is used ```$REPOSITORY_URL/$DEVICE_CLASS.json``` e.g. ```https://raw.githubusercontent.com/example/example-thing-model-repository/main/power.json```
 
 ## Authors
 
-Sebastian Alberternst <sebastian.alberternst@dfki.de>
+Sebastian Alberternst <sebastian.alberternst@dfki.de>  
 Sebastian Hocke <sebastian.hocke@dfki.de>
 
 ## License
