@@ -131,7 +131,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         config_entry = None
 
         if "entry_id" in self.context:
-            config_entry = self.hass.config_entries.async_get_entry(self.context["entry_id"])
+            config_entry = self.hass.config_entries.async_get_entry(
+                self.context["entry_id"])
 
         if user_input is not None:
             try:
@@ -146,7 +147,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         device_classes = await get_all_device_classes(self.hass)
         return self.async_show_form(
             step_id="entities",
-            data_schema=get_entities_schema(device_classes, config_entry.data if config_entry else {}),
+            data_schema=get_entities_schema(
+                device_classes, config_entry.data if config_entry else {}),
             errors=errors
         )
 

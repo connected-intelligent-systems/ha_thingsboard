@@ -146,7 +146,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         if should_process_event({"entity_id": entity_id, "device_class": device_class}):
             await handle_device_registration(hashed_entity_id, state, device_class)
             publish_state(client, hashed_entity_id, state,
-                            device_class, QOS_RELIABLE)
+                          device_class, QOS_RELIABLE)
 
     for event_type in (EVENT_STATE_REPORTED, EVENT_STATE_CHANGED):
         hass.bus.async_listen(
