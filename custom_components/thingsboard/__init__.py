@@ -58,7 +58,7 @@ async def get_device_ids(hass: HomeAssistant, entity_id: str) -> tuple[str | Non
 
 def publish_mqtt(client: mqtt.Client, topic: str, payload: dict, qos: int = QOS_DEFAULT) -> None:
     """Generic MQTT publish function."""
-    message_info = client.publish(topic, json.dumps(payload), qos=qos)
+    client.publish(topic, json.dumps(payload), qos=qos)
 
 
 def publish_connect(client: mqtt.Client, entity_id: str, device_class: str = "generic",
